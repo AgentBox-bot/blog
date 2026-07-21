@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>墨韵流光 · 个人博客</title>
+    <link href="https://jiashu.jyh-email.dpdns.org/user22334455/https/fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink-deep: #060609;
+            --ink-dark: #0c0c16;
+            --ink-mid: #141423;
+            --ink-surface: #1a1a2e;
+            --ink-card: #181825;
+            --ink-light: #1e1e35;
+            --gold-primary: #c9a96e;
+            --gold-bright: #d4b87a;
+            --gold-pale: #b8945c;
+            --gold-dim: #8b6f3f;
+            --gold-shimmer: #e8d5a3;
+            --cinnabar: #b83a2e;
+            --cinnabar-light: #d45244;
+            --text-primary: #e8e4dd;
+            --text-secondary: #b8b3a8;
+            --text-muted: #7a756e;
+            --text-dim: #5a554e;
+            --spacing-xs: 0.4rem;
+            --spacing-sm: 0.75rem;
+            --spacing-md: 1.25rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --spacing-2xl: 5rem;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --font-display: 'Noto Serif SC', 'Cormorant Garamond', 'STSong', 'SimSun', 'Songti SC', serif;
+            --font-body: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Source Han Sans SC', sans-serif;
+            --font-accent: 'Cormorant Garamond', 'Noto Serif SC', 'Georgia', serif;
+            --transition-slow: 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+            --transition-medium: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            --transition-fast: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+            --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+            --ease-in-out-smooth: cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            background-color: var(--ink-deep);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            overflow-x: hidden;
+            min-height: 100vh;
+            cursor: default;
+            position: relative;
+        }
+
+        /* ============ Canvas 背景层 ============ */
+        #ink-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
+        /* ============ 鼠标墨点容器 ============ */
+        .mouse-ink-trail {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .mouse-ink-dot {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: inkDotDissolve 2.5s ease-out forwards;
+            opacity: 0;
+            filter: blur(3px);
+        }
+        @keyframes inkDotDissolve {
+            0% {
+                opacity: 0.7;
+                transform: translate(0, 0) scale(0.3);
+            }
+            15% {
+                opacity: 0.55;
+                transform: translate(0, 0) scale(1);
+            }
+            40% {
+                opacity: 0.25;
+                transform: translate(var(--drift-x, 10px), var(--drift-y, -15px)) scale(2.5);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--drift-x-end, 25px), var(--drift-y-end, -40px)) scale(5);
+            }
+        }
+
+        /* ============ 主内容层 ============ */
+        .main-wrapper {
+            position: relative;
+            z-index: 2;
+            pointer-events: auto;
+        }
+
+        /* ============ 导航栏 ============ */
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1.2rem 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all var(--transition-medium);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+        }
+        .nav-bar.scrolled {
+            background: rgba(6, 6, 9, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(201, 169, 110, 0.1);
+            padding: 0.8rem 2.5rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+        .nav-brand {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gold-primary);
+            letter-spacing: 0.08em;
+            text-decoration: none;
+            position: relative;
+            transition: color var(--transition-medium);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .nav-brand:hover {
+            color: var(--gold-shimmer);
+        }
+        .nav-brand::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 1.5px;
+            background: var(--gold-primary);
+            transition: width var(--transition-slow) var(--ease-out-expo);
+            border-radius: 2px;
+        }
+        .nav-brand:hover::after {
+            width: 100%;
+        }
+        .nav-brand-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--cinnabar);
+            animation: dotPulse 2.5s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(184, 58, 46, 0.6);
+        }
+        @keyframes dotPulse {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.6);
+                opacity: 1;
+            }
+        }
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            position: relative;
+            padding: 0.3rem 0;
+            transition: color var(--transition-medium);
+            font-family: var(--font-body);
+        }
+        .nav-links a:hover {
+            color: var(--gold-primary);
+        }
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--gold-primary);
+            transition: width var(--transition-slow) var(--ease-out-expo);
+            border-radius: 1px;
+        }
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        .nav-links .active a {
+            color: var(--gold-primary);
+        }
+        .nav-links .active a::after {
+            width: 100%;
+        }
+        .nav-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            flex-direction: column;
+            gap: 5px;
+            padding: 5px;
+            z-index: 101;
+        }
+        .nav-menu-toggle span {
+            display: block;
+            width: 24px;
+            height: 1.5px;
+            background: var(--gold-primary);
+            border-radius: 2px;
+            transition: all var(--transition-medium);
+        }
+
+        /* ============ 英雄区 ============ */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 6rem 2rem;
+            position: relative;
+            overflow: visible;
+        }
+        .hero-ornament-top {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 80px;
+            background: linear-gradient(to bottom, transparent, var(--gold-dim), transparent);
+            animation: ornamentFade 4s ease-in-out infinite;
+            opacity: 0.6;
+        }
+        @keyframes ornamentFade {
+            0%,
+            100% {
+                opacity: 0.3;
+                height: 60px;
+            }
+            50% {
+                opacity: 0.9;
+                height: 100px;
+            }
+        }
+        .hero-gold-line {
+            position: absolute;
+            top: 28%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-primary), var(--gold-shimmer), var(--gold-primary), transparent);
+            animation: goldLineShimmer 5s ease-in-out infinite;
+            border-radius: 1px;
+            opacity: 0.7;
+        }
+        @keyframes goldLineShimmer {
+            0%,
+            100% {
+                width: 140px;
+                opacity: 0.4;
+            }
+            50% {
+                width: 240px;
+                opacity: 0.9;
+            }
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 0.4rem 1.2rem;
+            border: 1px solid rgba(201, 169, 110, 0.35);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            color: var(--gold-pale);
+            font-family: var(--font-body);
+            margin-bottom: 2rem;
+            animation: badgeGlow 3s ease-in-out infinite;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            background: rgba(201, 169, 110, 0.03);
+        }
+        @keyframes badgeGlow {
+            0%,
+            100% {
+                border-color: rgba(201, 169, 110, 0.3);
+                box-shadow: 0 0 15px rgba(201, 169, 110, 0.05);
+            }
+            50% {
+                border-color: rgba(201, 169, 110, 0.55);
+                box-shadow: 0 0 30px rgba(201, 169, 110, 0.15);
+            }
+        }
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.8rem, 6vw, 5.5rem);
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            line-height: 1.15;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            position: relative;
+            animation: titleReveal 1.2s var(--ease-out-expo) forwards;
+        }
+        .hero-title .gold-accent {
+            color: var(--gold-primary);
+            position: relative;
+        }
+        .hero-title .gold-accent::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--gold-primary);
+            border-radius: 2px;
+            opacity: 0.5;
+            animation: underlineFlow 3s ease-in-out infinite;
+        }
+        @keyframes underlineFlow {
+            0%,
+            100% {
+                transform: scaleX(0.8);
+                opacity: 0.4;
+            }
+            50% {
+                transform: scaleX(1.05);
+                opacity: 0.75;
+            }
+        }
+        @keyframes titleReveal {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+                filter: blur(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
+        }
+        .hero-subtitle {
+            font-family: var(--font-accent);
+            font-size: clamp(1.1rem, 2vw, 1.5rem);
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            margin-bottom: 2.5rem;
+            animation: subtitleReveal 1.2s var(--ease-out-expo) 0.25s forwards;
+            opacity: 0;
+        }
+        @keyframes subtitleReveal {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .hero-scroll-indicator {
+            position: absolute;
+            bottom: 2.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            animation: scrollBounce 2.5s ease-in-out infinite;
+            cursor: pointer;
+        }
+        .hero-scroll-indicator span {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            font-family: var(--font-body);
+        }
+        .hero-scroll-line {
+            width: 1px;
+            height: 50px;
+            background: linear-gradient(to bottom, var(--gold-dim), transparent);
+            border-radius: 1px;
+            animation: scrollLinePulse 2.5s ease-in-out infinite;
+        }
+        @keyframes scrollBounce {
+            0%,
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            50% {
+                transform: translateX(-50%) translateY(12px);
+            }
+        }
+        @keyframes scrollLinePulse {
+            0%,
+            100% {
+                height: 40px;
+                opacity: 0.5;
+            }
+            50% {
+                height: 65px;
+                opacity: 1;
+            }
+        }
+
+        /* ============ 内容区布局 ============ */
+        .content-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        .content-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 3rem;
+            padding: 2rem 0 4rem;
+        }
+
+        /* ============ 精选文章大卡片 ============ */
+        .featured-post {
+            grid-column: 1 / -1;
+            margin-bottom: 1rem;
+            position: relative;
+            border-radius: var(--radius-xl);
+            background: var(--ink-card);
+            border: 1px solid rgba(201, 169, 110, 0.12);
+            overflow: hidden;
+            transition: all var(--transition-slow);
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 380px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: featuredFloat 8s ease-in-out infinite;
+        }
+        @keyframes featuredFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            }
+            25% {
+                transform: translateY(-6px);
+                box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+            }
+            50% {
+                transform: translateY(-2px);
+                box-shadow: 0 22px 62px rgba(0, 0, 0, 0.52);
+            }
+            75% {
+                transform: translateY(-8px);
+                box-shadow: 0 30px 75px rgba(0, 0, 0, 0.58);
+            }
+        }
+        .featured-post:hover {
+            border-color: rgba(201, 169, 110, 0.35);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(201, 169, 110, 0.06);
+            transform: translateY(-8px);
+        }
+        .featured-post-image {
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(ellipse at center, rgba(201, 169, 110, 0.08) 0%, transparent 70%),
+                radial-gradient(circle at 30% 40%, rgba(30, 30, 55, 0.8) 0%, var(--ink-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 380px;
+        }
+        .featured-post-image .ink-art {
+            width: 70%;
+            height: 70%;
+            position: relative;
+            animation: inkArtFlow 12s ease-in-out infinite;
+        }
+        .featured-post-image .ink-art-circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(201, 169, 110, 0.2);
+            animation: inkCirclePulse 6s ease-in-out infinite;
+        }
+        .ink-art-circle:nth-child(1) {
+            width: 180px;
+            height: 180px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 0s;
+        }
+        .ink-art-circle:nth-child(2) {
+            width: 130px;
+            height: 130px;
+            top: 45%;
+            left: 48%;
+            transform: translate(-50%, -50%);
+            animation-delay: 1.5s;
+            border-color: rgba(201, 169, 110, 0.3);
+        }
+        .ink-art-circle:nth-child(3) {
+            width: 80px;
+            height: 80px;
+            top: 52%;
+            left: 51%;
+            transform: translate(-50%, -50%);
+            animation-delay: 3s;
+            border-color: rgba(201, 169, 110, 0.4);
+            background: rgba(201, 169, 110, 0.04);
+        }
+        @keyframes inkCirclePulse {
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.15);
+                opacity: 0.9;
+            }
+        }
+        @keyframes inkArtFlow {
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+            33% {
+                transform: rotate(1.5deg);
+            }
+            66% {
+                transform: rotate(-1deg);
+            }
+        }
+        .featured-post-content {
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        .featured-post-content::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            height: 60%;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(201, 169, 110, 0.3), transparent);
+        }
+        .featured-post-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            color: var(--gold-pale);
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            font-family: var(--font-body);
+            font-weight: 500;
+        }
+        .featured-post-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            transition: color var(--transition-medium);
+        }
+        .featured-post:hover .featured-post-title {
+            color: var(--gold-shimmer);
+        }
+        .featured-post-excerpt {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+        .featured-post-meta {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: var(--font-body);
+        }
+        .featured-post-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .featured-post-meta .meta-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+        }
+
+        /* ============ 文章列表区 ============ */
+        .posts-section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.04em;
+        }
+        .posts-section-header::before {
+            content: '';
+            width: 30px;
+            height: 1.5px;
+            background: var(--gold-primary);
+            border-radius: 1px;
+            flex-shrink: 0;
+        }
+        .post-card {
+            background: var(--ink-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem 2rem 1.6rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all var(--transition-medium);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .post-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 15%;
+            height: 70%;
+            width: 2px;
+            background: var(--gold-dim);
+            border-radius: 0 2px 2px 0;
+            transition: all var(--transition-slow);
+            opacity: 0;
+            transform: scaleY(0.3);
+        }
+        .post-card:hover {
+            border-color: rgba(201, 169, 110, 0.2);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(201, 169, 110, 0.06);
+            transform: translateX(6px);
+            background: var(--ink-light);
+        }
+        .post-card:hover::before {
+            opacity: 1;
+            transform: scaleY(1);
+            background: var(--gold-primary);
+            box-shadow: 0 0 12px rgba(201, 169, 110, 0.4);
+        }
+        .post-card-date {
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            color: var(--gold-pale);
+            font-family: var(--font-accent);
+            margin-bottom: 0.6rem;
+            font-style: italic;
+        }
+        .post-card-title {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.7rem;
+            line-height: 1.4;
+            transition: color var(--transition-medium);
+        }
+        .post-card:hover .post-card-title {
+            color: var(--gold-shimmer);
+        }
+        .post-card-excerpt {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+        .post-card-tags {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .post-card-tag {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.75rem;
+            border: 1px solid rgba(201, 169, 110, 0.25);
+            border-radius: 50px;
+            color: var(--gold-pale);
+            letter-spacing: 0.05em;
+            transition: all var(--transition-fast);
+            font-family: var(--font-body);
+            background: rgba(201, 169, 110, 0.02);
+        }
+        .post-card:hover .post-card-tag {
+            border-color: rgba(201, 169, 110, 0.45);
+            background: rgba(201, 169, 110, 0.06);
+        }
+        .post-card-tag:hover {
+            background: rgba(201, 169, 110, 0.15);
+            border-color: var(--gold-primary);
+            color: var(--gold-bright);
+        }
+
+        /* ============ 侧边栏 ============ */
+        .sidebar {
+            position: sticky;
+            top: 100px;
+            align-self: start;
+        }
+        .sidebar-card {
+            background: var(--ink-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+            transition: all var(--transition-medium);
+        }
+        .sidebar-card:hover {
+            border-color: rgba(201, 169, 110, 0.1);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+        }
+        .sidebar-avatar-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1rem;
+        }
+        .sidebar-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--gold-dim);
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 40% 35%, rgba(201, 169, 110, 0.2) 0%, var(--ink-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: avatarGlow 4s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(201, 169, 110, 0.1);
+        }
+        @keyframes avatarGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(201, 169, 110, 0.08);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(201, 169, 110, 0.2);
+            }
+        }
+        .sidebar-avatar-inner {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: var(--gold-primary);
+            font-weight: 700;
+        }
+        .sidebar-name {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.04em;
+        }
+        .sidebar-bio {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            text-align: center;
+        }
+        .sidebar-divider {
+            width: 40px;
+            height: 1px;
+            background: var(--gold-dim);
+            margin: 0.8rem auto;
+            border-radius: 1px;
+            opacity: 0.6;
+        }
+        .sidebar-tags-title {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            letter-spacing: 0.04em;
+        }
+        .sidebar-tags-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .sidebar-tag {
+            font-size: 0.72rem;
+            padding: 0.3rem 0.8rem;
+            border: 1px solid rgba(201, 169, 110, 0.2);
+            border-radius: 4px;
+            color: var(--gold-pale);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            letter-spacing: 0.04em;
+            font-family: var(--font-body);
+            background: rgba(201, 169, 110, 0.02);
+            position: relative;
+        }
+        .sidebar-tag:hover {
+            background: rgba(201, 169, 110, 0.12);
+            border-color: var(--gold-primary);
+            color: var(--gold-bright);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .sidebar-tag::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 10%;
+            width: 80%;
+            height: 1px;
+            background: var(--gold-dim);
+            transform: scaleX(0);
+            transition: transform var(--transition-medium);
+            border-radius: 1px;
+        }
+        .sidebar-tag:hover::after {
+            transform: scaleX(1);
+        }
+
+        /* ============ 页脚 ============ */
+        .site-footer {
+            border-top: 1px solid rgba(201, 169, 110, 0.1);
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .footer-ornament {
+            width: 60px;
+            height: 1px;
+            background: var(--gold-dim);
+            margin: 0 auto 1.5rem;
+            border-radius: 1px;
+            opacity: 0.5;
+        }
+        .footer-text {
+            font-family: var(--font-accent);
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            letter-spacing: 0.06em;
+            font-style: italic;
+        }
+        .footer-text .gold-dot {
+            display: inline-block;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            margin: 0 0.6rem;
+            vertical-align: middle;
+            animation: dotPulse 3s ease-in-out infinite;
+        }
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            transition: color var(--transition-medium);
+            font-family: var(--font-body);
+        }
+        .footer-links a:hover {
+            color: var(--gold-primary);
+        }
+
+        /* ============ 滚动渐显动画 ============ */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.9s var(--ease-out-expo);
+            will-change: transform, opacity;
+        }
+        .reveal-on-scroll.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal-on-scroll.reveal-delay-1 {
+            transition-delay: 0.1s;
+        }
+        .reveal-on-scroll.reveal-delay-2 {
+            transition-delay: 0.2s;
+        }
+        .reveal-on-scroll.reveal-delay-3 {
+            transition-delay: 0.3s;
+        }
+        .reveal-on-scroll.reveal-delay-4 {
+            transition-delay: 0.4s;
+        }
+
+        /* ============ 响应式设计 ============ */
+        @media (max-width: 1100px) {
+            .content-layout {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            .sidebar {
+                position: static;
+                top: auto;
+            }
+            .featured-post {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+            .featured-post-image {
+                min-height: 200px;
+                order: -1;
+            }
+            .featured-post-content::before {
+                display: none;
+            }
+            .featured-post-content {
+                padding: 2rem 1.5rem;
+            }
+            .featured-post-title {
+                font-size: 1.5rem;
+            }
+            .hero-title {
+                font-size: clamp(2rem, 5vw, 3.5rem);
+            }
+        }
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 70%;
+                max-width: 300px;
+                height: 100vh;
+                flex-direction: column;
+                background: rgba(10, 10, 20, 0.95);
+                backdrop-filter: blur(25px);
+                -webkit-backdrop-filter: blur(25px);
+                padding: 5rem 2rem;
+                gap: 1.5rem;
+                transition: right var(--transition-slow) var(--ease-in-out-smooth);
+                border-left: 1px solid rgba(201, 169, 110, 0.1);
+                z-index: 100;
+            }
+            .nav-links.open {
+                right: 0;
+            }
+            .nav-menu-toggle {
+                display: flex;
+            }
+            .nav-bar {
+                padding: 1rem 1.5rem;
+            }
+            .nav-bar.scrolled {
+                padding: 0.7rem 1.5rem;
+            }
+            .hero-section {
+                padding: 4rem 1rem;
+                min-height: 85vh;
+            }
+            .hero-title {
+                font-size: clamp(1.8rem, 7vw, 2.8rem);
+            }
+            .content-container {
+                padding: 0 1rem;
+            }
+            .post-card {
+                padding: 1.5rem;
+            }
+            .post-card-title {
+                font-size: 1.15rem;
+            }
+            .content-layout {
+                gap: 1.5rem;
+            }
+            .featured-post-content {
+                padding: 1.5rem;
+            }
+            .sidebar-card {
+                padding: 1.5rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .hero-badge {
+                font-size: 0.7rem;
+                padding: 0.3rem 0.9rem;
+            }
+            .hero-subtitle {
+                font-size: 0.9rem;
+            }
+            .featured-post-title {
+                font-size: 1.25rem;
+            }
+            .post-card {
+                padding: 1.2rem;
+                margin-bottom: 1rem;
+            }
+            .post-card-title {
+                font-size: 1.05rem;
+            }
+            .footer-links {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas 水墨背景 -->
+    <canvas id="ink-canvas"></canvas>
+
+    <!-- 鼠标墨点轨迹层 -->
+    <div class="mouse-ink-trail" id="mouseInkTrail"></div>
+
+    <!-- 主内容包裹层 -->
+    <div class="main-wrapper">
+
+        <!-- 导航栏 -->
+        <nav class="nav-bar" id="navBar">
+            <a href="#" class="nav-brand">
+                墨韵<span class="nav-brand-dot"></span>流光
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li class="active"><a href="#">首页</a></li>
+                <li><a href="#">文章</a></li>
+                <li><a href="#">随笔</a></li>
+                <li><a href="#">关于</a></li>
+            </ul>
+            <button class="nav-menu-toggle" id="navMenuToggle" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
+        </nav>
+
+        <!-- 英雄区 -->
+        <section class="hero-section">
+            <div class="hero-ornament-top"></div>
+            <div class="hero-gold-line"></div>
+            <div class="hero-badge">✦ 探索 · 思考 · 记录</div>
+            <h1 class="hero-title">
+                墨色深处<br>有<span class="gold-accent">光</span>流动
+            </h1>
+            <p class="hero-subtitle">在文字与代码的间隙，捕捉灵感的微光</p>
+            <div class="hero-scroll-indicator" id="heroScrollIndicator">
+                <span>沉 浸</span>
+                <div class="hero-scroll-line"></div>
+            </div>
+        </section>
+
+        <!-- 内容区域 -->
+        <div class="content-container">
+            <div class="content-layout">
+                <!-- 精选文章 -->
+                <article class="featured-post reveal-on-scroll" onclick="window.location.href='#'">
+                    <div class="featured-post-image">
+                        <div class="ink-art">
+                            <div class="ink-art-circle"></div>
+                            <div class="ink-art-circle"></div>
+                            <div class="ink-art-circle"></div>
+                        </div>
+                    </div>
+                    <div class="featured-post-content">
+                        <span class="featured-post-label">精选文章</span>
+                        <h2 class="featured-post-title">在不确定的世界里寻找确定的锚点</h2>
+                        <p class="featured-post-excerpt">
+                            当我们谈论确定性时，我们真正渴望的或许是一种内在的秩序感——它不来自外部世界的承诺，而源于我们与自身对话的深度。
+                        </p>
+                        <div class="featured-post-meta">
+                            <span><span class="meta-dot"></span> 2026年7月15日</span>
+                            <span>阅读时间 8 分钟</span>
+                            <span>哲学 · 沉思</span>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- 文章列表 -->
+                <div>
+                    <div class="posts-section-header reveal-on-scroll">近期文章</div>
+                    <article class="post-card reveal-on-scroll reveal-delay-1" onclick="window.location.href='#'">
+                        <div class="post-card-date">2026年7月10日 · 随笔</div>
+                        <h3 class="post-card-title">雨夜读书记：纸质书的温度</h3>
+                        <p class="post-card-excerpt">窗外的雨声与书页翻动的声音交织，在这个数字化的时代，纸质书所承载的不仅是文字，更是一种触觉的记忆。</p>
+                        <div class="post-card-tags">
+                            <span class="post-card-tag">阅读</span>
+                            <span class="post-card-tag">生活</span>
+                            <span class="post-card-tag">随笔</span>
+                        </div>
+                    </article>
+                    <article class="post-card reveal-on-scroll reveal-delay-2" onclick="window.location.href='#'">
+                        <div class="post-card-date">2026年7月5日 · 技术</div>
+                        <h3 class="post-card-title">代码之美：从对称性看软件架构</h3>
+                        <p class="post-card-excerpt">自然界中的对称性给了我们无尽的美学享受，而在软件架构中，对称性同样能带来优雅与可维护性。</p>
+                        <div class="post-card-tags">
+                            <span class="post-card-tag">编程</span>
+                            <span class="post-card-tag">架构</span>
+                            <span class="post-card-tag">美学</span>
+                        </div>
+                    </article>
+                    <article class="post-card reveal-on-scroll reveal-delay-3" onclick="window.location.href='#'">
+                        <div class="post-card-date">2026年6月28日 · 旅行</div>
+                        <h3 class="post-card-title">徽州行记：水墨画中的村落</h3>
+                        <p class="post-card-excerpt">白墙黛瓦，马头墙高低错落，走进徽州的古村落，仿佛走进了一幅流动的水墨长卷。</p>
+                        <div class="post-card-tags">
+                            <span class="post-card-tag">旅行</span>
+                            <span class="post-card-tag">摄影</span>
+                            <span class="post-card-tag">文化</span>
+                        </div>
+                    </article>
+                    <article class="post-card reveal-on-scroll reveal-delay-4" onclick="window.location.href='#'">
+                        <div class="post-card-date">2026年6月20日 · 思考</div>
+                        <h3 class="post-card-title">慢下来：对抗加速主义的日常实践</h3>
+                        <p class="post-card-excerpt">在一切都追求更快、更高效的时代，慢下来反而成了一种需要刻意练习的能力。</p>
+                        <div class="post-card-tags">
+                            <span class="post-card-tag">生活方式</span>
+                            <span class="post-card-tag">思考</span>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- 侧边栏 -->
+                <aside class="sidebar">
+                    <div class="sidebar-card reveal-on-scroll">
+                        <div class="sidebar-avatar-area">
+                            <div class="sidebar-avatar">
+                                <span class="sidebar-avatar-inner">墨</span>
+                            </div>
+                            <span class="sidebar-name">墨韵居士</span>
+                            <div class="sidebar-divider"></div>
+                            <p class="sidebar-bio">
+                                写代码也写文字，在理性与感性之间游走。<br>相信好的设计能够穿越时间。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="sidebar-card reveal-on-scroll reveal-delay-2">
+                        <div class="sidebar-tags-title">标签云</div>
+                        <div class="sidebar-tags-cloud">
+                            <span class="sidebar-tag">哲学</span>
+                            <span class="sidebar-tag">编程</span>
+                            <span class="sidebar-tag">设计</span>
+                            <span class="sidebar-tag">阅读</span>
+                            <span class="sidebar-tag">旅行</span>
+                            <span class="sidebar-tag">摄影</span>
+                            <span class="sidebar-tag">随笔</span>
+                            <span class="sidebar-tag">技术</span>
+                            <span class="sidebar-tag">生活</span>
+                            <span class="sidebar-tag">美学</span>
+                            <span class="sidebar-tag">文化</span>
+                            <span class="sidebar-tag">沉思</span>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="site-footer">
+            <div class="footer-ornament"></div>
+            <p class="footer-text">
+                墨韵流光<span class="gold-dot"></span>用文字雕刻时光
+            </p>
+            <div class="footer-links">
+                <a href="#">关于</a>
+                <a href="#">归档</a>
+                <a href="#">RSS</a>
+                <a href="#">联系</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== Canvas 水墨背景 ====================
+            const canvas = document.getElementById('ink-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let inkBlobs = [];
+            let goldenParticles = [];
+            const NUM_BLOBS = 10;
+            const NUM_PARTICLES = 35;
+
+            function resizeCanvas() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                initBlobs();
+                initParticles();
+            });
+
+            class InkBlob {
+                constructor() {
+                    this.reset(true);
+                }
+                reset(initial = false) {
+                    this.x = initial ? Math.random() * width : -200 + Math.random() * (width + 400);
+                    this.y = initial ? Math.random() * height : -200 + Math.random() * (height + 400);
+                    this.radius = 60 + Math.random() * 180;
+                    this.baseRadius = this.radius;
+                    this.opacity = 0.015 + Math.random() * 0.05;
+                    this.speedX = (Math.random() - 0.5) * 0.25;
+                    this.speedY = (Math.random() - 0.5) * 0.25;
+                    this.phase = Math.random() * Math.PI * 2;
+                    this.frequency = 0.0003 + Math.random() * 0.0007;
+                    this.amplitude = 15 + Math.random() * 50;
+                    this.colorShift = Math.random() * 0.4;
+                    this.hueBase = 225 + Math.random() * 20;
+                }
+                update(time) {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.radius = this.baseRadius + Math.sin(time * this.frequency + this.phase) * this.amplitude;
+                    if (this.x > width + 300 || this.x < -300 || this.y > height + 300 || this.y < -300) {
+                        this.reset();
+                    }
+                }
+                draw(ctx, time) {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+                    const hue = this.hueBase + Math.sin(time * 0.0002 + this.phase) * 8;
+                    const alpha = this.opacity * (0.7 + 0.3 * Math.sin(time * 0.0005 + this.phase));
+                    gradient.addColorStop(0, `hsla(${hue}, 20%, 30%, ${alpha * 1.6})`);
+                    gradient.addColorStop(0.35, `hsla(${hue}, 18%, 22%, ${alpha * 1.1})`);
+                    gradient.addColorStop(0.7, `hsla(${hue}, 15%, 15%, ${alpha * 0.5})`);
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            class GoldenParticle {
+                constructor() {
+                    this.reset(true);
+                }
+                reset(initial = false) {
+                    this.x = initial ? Math.random() * width : Math.random() * width;
+                    this.y = initial ? Math.random() * height : height + 30;
+                    this.size = 0.6 + Math.random() * 2.2;
+                    this.opacity = 0.2 + Math.random() * 0.6;
+                    this.speedY = -0.15 - Math.random() * 0.6;
+                    this.speedX = (Math.random() - 0.5) * 0.35;
+                    this.wobbleAmp = 0.3 + Math.random() * 0.8;
+                    this.wobbleFreq = 0.01 + Math.random() * 0.03;
+                    this.phase = Math.random() * Math.PI * 2;
+                    this.lifespan = 400 + Math.random() * 800;
+                    this.age = 0;
+                }
+                update(time) {
+                    this.y += this.speedY;
+                    this.x += this.speedX + Math.sin(time * this.wobbleFreq + this.phase) * this.wobbleAmp;
+                    this.age++;
+                    if (this.y < -30 || this.age > this.lifespan || this.x < -30 || this.x > width + 30) {
+                        this.reset();
+                    }
+                    const lifeRatio = 1 - this.age / this.lifespan;
+                    this.currentOpacity = this.opacity * (0.3 + 0.7 * lifeRatio);
+                }
+                draw(ctx) {
+                    ctx.fillStyle = `rgba(210,175,120,${this.currentOpacity})`;
+                    ctx.shadowColor = `rgba(200,160,100,${this.currentOpacity * 0.8})`;
+                    ctx.shadowBlur = this.size * 3;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            function initBlobs() {
+                inkBlobs = [];
+                for (let i = 0; i < NUM_BLOBS; i++) {
+                    inkBlobs.push(new InkBlob());
+                }
+            }
+
+            function initParticles() {
+                goldenParticles = [];
+                for (let i = 0; i < NUM_PARTICLES; i++) {
+                    goldenParticles.push(new GoldenParticle());
+                }
+            }
+            initBlobs();
+            initParticles();
+
+            let animationTime = 0;
+
+            function animateCanvas(timestamp) {
+                animationTime = timestamp;
+                ctx.clearRect(0, 0, width, height);
+                // 基底色
+                ctx.fillStyle = 'rgba(6,6,9,0.3)';
+                ctx.fillRect(0, 0, width, height);
+                // 绘制墨团
+                inkBlobs.forEach(blob => {
+                    blob.update(timestamp);
+                    blob.draw(ctx, timestamp);
+                });
+                // 绘制金色粒子
+                goldenParticles.forEach(particle => {
+                    particle.update(timestamp);
+                    particle.draw(ctx);
+                });
+                requestAnimationFrame(animateCanvas);
+            }
+            requestAnimationFrame(animateCanvas);
+
+            // ==================== 鼠标墨点效果 ====================
+            const mouseTrail = document.getElementById('mouseInkTrail');
+            let lastMouseTime = 0;
+            const MOUSE_THROTTLE = 60;
+
+            document.addEventListener('mousemove', (e) => {
+                const now = Date.now();
+                if (now - lastMouseTime < MOUSE_THROTTLE) return;
+                lastMouseTime = now;
+                const dot = document.createElement('div');
+                dot.className = 'mouse-ink-dot';
+                const size = 4 + Math.random() * 10;
+                const driftX = (Math.random() - 0.5) * 40;
+                const driftY = -(15 + Math.random() * 35);
+                const driftXEnd = driftX * 2.5;
+                const driftYEnd = driftY * 2.5;
+                dot.style.cssText = `
+                    left: ${e.clientX}px;
+                    top: ${e.clientY}px;
+                    width: ${size}px;
+                    height: ${size}px;
+                    background: radial-gradient(circle, rgba(180,155,115,0.7) 0%, rgba(140,110,70,0.3) 40%, transparent 70%);
+                    --drift-x: ${driftX}px;
+                    --drift-y: ${driftY}px;
+                    --drift-x-end: ${driftXEnd}px;
+                    --drift-y-end: ${driftYEnd}px;
+                `;
+                mouseTrail.appendChild(dot);
+                setTimeout(() => {
+                    if (dot.parentNode) dot.parentNode.removeChild(dot);
+                }, 2600);
+            });
+
+            // 点击时生成更大墨点
+            document.addEventListener('click', (e) => {
+                for (let i = 0; i < 4; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'mouse-ink-dot';
+                    const size = 8 + Math.random() * 18;
+                    const driftX = (Math.random() - 0.5) * 60;
+                    const driftY = -(20 + Math.random() * 50);
+                    const driftXEnd = driftX * 3;
+                    const driftYEnd = driftY * 3;
+                    dot.style.cssText = `
+                        left: ${e.clientX + (Math.random()-0.5)*20}px;
+                        top: ${e.clientY + (Math.random()-0.5)*20}px;
+                        width: ${size}px;
+                        height: ${size}px;
+                        background: radial-gradient(circle, rgba(200,165,115,0.8) 0%, rgba(160,125,80,0.4) 35%, transparent 70%);
+                        --drift-x: ${driftX}px;
+                        --drift-y: ${driftY}px;
+                        --drift-x-end: ${driftXEnd}px;
+                        --drift-y-end: ${driftYEnd}px;
+                        animation-duration: 3.2s;
+                    `;
+                    mouseTrail.appendChild(dot);
+                    setTimeout(() => {
+                        if (dot.parentNode) dot.parentNode.removeChild(dot);
+                    }, 3300);
+                }
+            });
+
+            // ==================== 导航栏滚动效果 ====================
+            const navBar = document.getElementById('navBar');
+            let lastScrollY = 0;
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                if (scrollY > 50) {
+                    navBar.classList.add('scrolled');
+                } else {
+                    navBar.classList.remove('scrolled');
+                }
+                lastScrollY = scrollY;
+            });
+
+            // ==================== 移动端菜单 ====================
+            const navMenuToggle = document.getElementById('navMenuToggle');
+            const navLinks = document.getElementById('navLinks');
+            navMenuToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('open');
+            });
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    navLinks.classList.remove('open');
+                });
+            });
+            document.addEventListener('click', (e) => {
+                if (!navLinks.contains(e.target) && !navMenuToggle.contains(e.target) && navLinks
+                    .classList.contains('open')) {
+                    navLinks.classList.remove('open');
+                }
+            });
+
+            // ==================== 英雄区滚动指示器 ====================
+            const heroScrollIndicator = document.getElementById('heroScrollIndicator');
+            if (heroScrollIndicator) {
+                heroScrollIndicator.addEventListener('click', () => {
+                    const featuredPost = document.querySelector('.featured-post');
+                    if (featuredPost) {
+                        featuredPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+
+            // ==================== 滚动渐显 ====================
+            const revealElements = document.querySelectorAll('.reveal-on-scroll');
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px 0px -60px 0px',
+                threshold: 0.12,
+            };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('revealed');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+            revealElements.forEach(el => observer.observe(el));
+
+            // ==================== 页面初始加载动画 ====================
+            document.addEventListener('DOMContentLoaded', () => {
+                // 初始就可见的元素手动触发
+                setTimeout(() => {
+                    const visibleReveals = document.querySelectorAll('.reveal-on-scroll');
+                    visibleReveals.forEach(el => {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.top < window.innerHeight && rect.bottom > 0) {
+                            el.classList.add('revealed');
+                        }
+                    });
+                }, 300);
+            });
+
+            // ==================== 键盘导航 ====================
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && navLinks.classList.contains('open')) {
+                    navLinks.classList.remove('open');
+                }
+            });
+
+            console.log('%c墨韵流光 %c博客已就绪 %c— 愿灵感如墨，在时光中缓缓扩散',
+                'color:#c9a96e;font-size:1.2em;font-family:serif;',
+                'color:#b8b3a8;',
+                'color:#7a756e;font-style:italic;');
+        })();
+    </script>
+</body>
+</html>
